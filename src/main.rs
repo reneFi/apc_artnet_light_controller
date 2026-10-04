@@ -16,8 +16,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let out_ports = midi_out.ports();
 
     // Ports anhand des Namens ("APCmini mk2") suchen oder interaktiv wählen
-    let in_port = select_in_port(&midi_in, &in_ports, "APCmini mk2")?;
-    let out_port = select_out_port(&midi_out, &out_ports, "APCmini mk2")?;
+    let in_port = select_in_port(&midi_in, &in_ports, "APC mini mk2:APC mini mk2 Control")?;
+    let out_port = select_out_port(&midi_out, &out_ports, "APC mini mk2:APC mini mk2 Control")?;
 
     println!("APCmini MK2 erfolgreich gefunden und verbunden!");
 
