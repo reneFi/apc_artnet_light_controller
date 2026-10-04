@@ -21,15 +21,38 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("APCmini MK2 erfolgreich gefunden und verbunden!");
 
-    // Ausgangsverbindung öffnen und APCmini MK2 in den programmierbaren Modus versetzen (SysEx)
     let mut conn_out = midi_out.connect(&out_port, "apc_test_output")?;
     
-    // APCmini MK2 DAW / Standalone Initialization SysEx 
-    let sysex_init: &[u8] = &[0xF0, 0x47, 0x7F, 0x43, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xF7];
-    conn_out.send(sysex_init)?;
+    // 1. WICHTIG: Korrekter SysEx-Befehl für den APCmini MK2 "Application/Programmer Mode"
+    // Schaltet das Gerät in den steuerbaren Modus abseits von Ableton Live
+    let sysex_app_mode: &[u8] = &[0xF0, 0x47, 0x7F, 0x43, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xF7];
+    conn_out.send(sysex_app_mode)?;
     
-    // Optisches Feedback: Setze Pad (Row 0, Col 0 -> Note 0) auf Hellgrün
-    conn_out.send(&[0x90, 0, 5])?;
+    // Kurze Pause, damit das Gerät den Modus übernimmt
+    thread::sleep(Duration::from_millis(50));
+
+    // 2. LED ansteuern:
+    // Nach Protokoll steuert der MIDI-Kanal im Status-Byte das Verhalten:
+    // 0x90 (Kanal 1) = Statisch 100% Helligkeit
+    // Byte 2 = Notennummer (0 bis 63 für das 8x8 Pad-Grid, 0 ist unten links / je nach Mapping)
+    // Byte 3 = Velocity (Farbcode aus der Akai RGB-Palette, z. B. 5 = Grün, 13 = Rot, 45 = Blau)
+    
+    println!("Schalte Test-LEDs ein...");
+    
+    // Test: Lasse die ersten 4 Pads in unterschiedlichen Farben aufleuchten
+    conn_out.send(&[0x90, 0, 13])?; // Pad 0: Rot (Velocity 13)
+    conn_out.send(&[0x90, 1, 5])?;  // Pad 1: Grün (Velocity 5)
+    conn_out.send(&[0x90, 2, 45])?; // Pad 2: Blau (Velocity 45)
+    conn_out.send(&[0x90, 3, 49])?; // Pad 3: Weiß/Cyan (Velocity 49)
+
+     // Kurze Pause, damit das Gerät den Modus übernimmt
+    thread::sleep(Duration::from_millis(2000));
+
+    // Test: Lasse die ersten 4 Pads in unterschiedlichen Farben aufleuchten
+    conn_out.send(&[0x90, 0, 0])?; // Pad 0: Aus
+    conn_out.send(&[0x90, 1, 0])?;  // Pad 1: Aus
+    conn_out.send(&[0x90, 2, 0])?; // Pad 2: Aus
+    conn_out.send(&[0x90, 3, 0])?; // Pad 3: Aus
 
     println!("Lausche auf MIDI-Events (Drücke Pads oder Fader). Drücke Strg+C zum Beenden...\n");
 
@@ -42,6 +65,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let status = message[0];
                 let note = message[1];
                 let velocity = message[2];
+                let mut forwarded = message.to_vec();
+                forwarded[2] = 45;
+                conn_out.send(&forwarded); // Leite das Event direkt an den Output weiter
                 println!("MIDI Event -> Status: {:#04X}, Note/Control: {}, Velocity/Value: {}", status, note, velocity);
             } else {
                 println!("SysEx / Anderes Event: {:02X?}", message);
