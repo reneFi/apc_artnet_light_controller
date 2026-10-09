@@ -1,5 +1,6 @@
 mod output;
 mod midi;
+mod control;
 
 use crate::output::init_artnet;
 use crate::midi::midi_init;
@@ -7,15 +8,12 @@ use crate::midi::midi_init;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     
-    init_artnet();
+    let artnet_sender = init_artnet();
     let mut midi_controller = midi_init()?;
     
     midi_controller.update_button_leds(&[0, 1, 2, 3], &[])?;
     
-    loop {
-        let event = midi_controller.recv()?;
-        println!("APC mini event: {:?}", event);
-    }
+    control::run(&midi_controller, &artnet_sender)
 
 /*
     // 1. MIDI Input initialisieren

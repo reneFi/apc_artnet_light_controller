@@ -6,6 +6,16 @@ use artnet_protocol::{
 
 use std::net::{UdpSocket, Ipv4Addr};
 
+pub struct ArtNetSender {
+    socket: UdpSocket,
+    target_addr: String,
+}
+
+impl ArtNetSender {
+    pub fn send_dmx_frame(&self, dmx_channels: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+        send_dmx_frame(&self.socket, &self.target_addr, dmx_channels)
+    }
+}
 
 fn send_dmx_frame(socket: &UdpSocket, target_addr: &str, dmx_channels: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
     // 1. DMX-Daten als Output-Paket definieren (Universum 0)
@@ -27,7 +37,7 @@ fn send_dmx_frame(socket: &UdpSocket, target_addr: &str, dmx_channels: &[u8]) ->
     Ok(())
 }
 
-pub fn init_artnet() {
+pub fn init_artnet() -> ArtNetSender {
     println!("=== APCmini MK2 to LuxDMX (Art-Net) ===");
 
     // --- Konfiguration ---
@@ -43,5 +53,7 @@ pub fn init_artnet() {
     socket.set_broadcast(true).expect("Fehler beim Setzen der Broadcast-Option");
     println!("Art-Net Sender bereit. Ziel: {}", target_addr);
 
-    send_dmx_frame(&socket, &target_addr, &[255, 0, 0, 0, 0, 0, 0, 0]).expect("Fehler beim Senden des DMX-Frames");
+    send_dmx_frame(&socket, &target_addr, &[0; 8]).expect("Fehler beim Senden des DMX-Frames");
+
+    ArtNetSender { socket, target_addr }
 }
