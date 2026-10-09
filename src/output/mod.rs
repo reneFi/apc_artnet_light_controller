@@ -38,8 +38,6 @@ fn send_dmx_frame(socket: &UdpSocket, target_addr: &str, dmx_channels: &[u8]) ->
 }
 
 pub fn init_artnet() -> ArtNetSender {
-    println!("=== APCmini MK2 to LuxDMX (Art-Net) ===");
-
     // --- Konfiguration ---
     // Passe diese IP-Adresse an die feste IP deines ESP32 (LuxDMX) im WLAN an:
     let esp32_ip = Ipv4Addr::new(192, 168, 2, 89); 

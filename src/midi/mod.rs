@@ -209,46 +209,6 @@ fn select_out_port(
         .ok_or_else(|| "Ungültige Port-Nummer".into())
 }
 
-pub fn midi_led_test() -> Result<(), Box<dyn std::error::Error>>  {
-    
-    
-    // 2. MIDI Output initialisieren
-    let midi_out = MidiOutput::new("apc_test_out")?;
-    let out_ports = midi_out.ports();
-
-    // Ports anhand des Namens ("APCmini mk2") suchen oder interaktiv wählen
-    let out_port = select_out_port(&midi_out, &out_ports, "APC mini mk2:APC mini mk2 Control")?;
-
-    println!("APCmini MK2 erfolgreich gefunden und verbunden!");
-
-    let mut conn_out = midi_out.connect(&out_port, "apc_test_output")?;
-      
-    // 2. LED ansteuern:
-    // Nach Protokoll steuert der MIDI-Kanal im Status-Byte das Verhalten:
-    // 0x90 (Kanal 1) = Statisch 100% Helligkeit
-    // Byte 2 = Notennummer (0 bis 63 für das 8x8 Pad-Grid, 0 ist unten links / je nach Mapping)
-    // Byte 3 = Velocity (Farbcode aus der Akai RGB-Palette, z. B. 5 = Grün, 13 = Rot, 45 = Blau)
-    
-    println!("Schalte Test-LEDs ein...");
-    
-    // Test: Lasse die ersten 4 Pads in unterschiedlichen Farben aufleuchten
-    conn_out.send(&[0x90, 0, 13])?; // Pad 0: Rot (Velocity 13)
-    conn_out.send(&[0x90, 1, 5])?;  // Pad 1: Grün (Velocity 5)
-    conn_out.send(&[0x90, 2, 45])?; // Pad 2: Blau (Velocity 45)
-    conn_out.send(&[0x90, 3, 49])?; // Pad 3: Weiß/Cyan (Velocity 49)
-
-     // Kurze Pause, damit das Gerät den Modus übernimmt
-    thread::sleep(Duration::from_millis(2000));
-
-    // Test: Lasse die ersten 4 Pads in unterschiedlichen Farben aufleuchten
-    conn_out.send(&[0x90, 0, 0])?; // Pad 0: Aus
-    conn_out.send(&[0x90, 1, 0])?;  // Pad 1: Aus
-    conn_out.send(&[0x90, 2, 0])?; // Pad 2: Aus
-    conn_out.send(&[0x90, 3, 0])?; // Pad 3: Aus
-    Ok(())
-    
-}
-
 #[cfg(test)]
 mod tests {
     use super::{button_led_message, parse_event, MidiEvent};
