@@ -1,9 +1,14 @@
-use midir::{MidiInput, MidiInputConnection, MidiInputPort, MidiOutput, MidiOutputPort};
+use midir::{
+    MidiInput, MidiInputConnection, MidiInputPort, MidiOutput, MidiOutputConnection, MidiOutputPort,
+};
 use std::error::Error;
 use std::io::{self, Write};
 use std::sync::mpsc::{self, Receiver, RecvError};
 use std::thread;
 use std::time::Duration;
+
+const BUTTON_COLOR_GREEN: u8 = 5;
+const BUTTON_COLOR_RED: u8 = 13;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum MidiEvent {
@@ -14,12 +19,49 @@ pub enum MidiEvent {
 pub struct MidiController {
     events: Receiver<MidiEvent>,
     _connection: MidiInputConnection<()>,
+    output: MidiOutputConnection,
 }
 
 impl MidiController {
     pub fn recv(&self) -> Result<MidiEvent, RecvError> {
         self.events.recv()
     }
+
+    /// Sets used buttons to green and the activated subset to red.
+    pub fn update_button_leds(
+        &mut self,
+        used_buttons: &[u8],
+        activated_buttons: &[u8],
+    ) -> Result<(), Box<dyn Error>> {
+        for &button in used_buttons {
+            if button > 127 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "MIDI button note must be in 0..=127",
+                )
+                .into());
+            }
+
+            self.output.send(&button_led_message(
+                button,
+                activated_buttons.contains(&button),
+            ))?;
+        }
+
+        Ok(())
+    }
+}
+
+fn button_led_message(button: u8, activated: bool) -> [u8; 3] {
+    [
+        0x90,
+        button,
+        if activated {
+            BUTTON_COLOR_RED
+        } else {
+            BUTTON_COLOR_GREEN
+        },
+    ]
 }
 
 fn parse_event(message: &[u8]) -> Option<MidiEvent> {
@@ -90,6 +132,7 @@ pub fn midi_init() -> Result<MidiController, Box<dyn std::error::Error>> {
     Ok(MidiController {
         events: event_rx,
         _connection: connection,
+        output: conn_out,
     })
 }
 
@@ -208,7 +251,13 @@ pub fn midi_led_test() -> Result<(), Box<dyn std::error::Error>>  {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_event, MidiEvent};
+    use super::{button_led_message, parse_event, MidiEvent};
+
+    #[test]
+    fn maps_button_led_state_to_akai_colors() {
+        assert_eq!(button_led_message(7, false), [0x90, 7, 5]);
+        assert_eq!(button_led_message(7, true), [0x90, 7, 13]);
+    }
 
     #[test]
     fn parses_button_press_and_release() {
