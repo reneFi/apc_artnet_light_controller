@@ -1,12 +1,20 @@
-use midir::{MidiInput, MidiOutput, MidiInputPort, MidiOutputPort};
-use std::error::Error;
-use std::io::{self, Write};
-use std::thread;
-use std::time::Duration;
+mod output;
+mod midi;
 
-fn main() -> Result<(), Box<dyn Error>> {
-    println!("=== APCmini MK2 MIDI Test (midir 0.11) ===");
+use crate::output::init_artnet;
+use crate::midi::midi_init;
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    
+    init_artnet();
+    let midi_controller = midi_init()?;
+
+    loop {
+        let event = midi_controller.recv()?;
+        println!("APC mini event: {:?}", event);
+    }
+
+/*
     // 1. MIDI Input initialisieren
     let midi_in = MidiInput::new("apc_test_in")?;
     let in_ports = midi_in.ports();
@@ -75,13 +83,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
         (),
     )?;
-
-    // Hauptschleife am Leben halten
-    loop {
-        thread::sleep(Duration::from_millis(1000));
-    }
+*/
 }
-
+/*
 // Hilfsfunktion für Input-Port Auswahl
 fn select_in_port(
     midi_in: &MidiInput,
@@ -153,3 +157,4 @@ fn select_out_port(
         .cloned()
         .ok_or_else(|| "Ungültige Port-Nummer".into())
 }
+*/

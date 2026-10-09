@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 midir = "0.11.0"
+artnet_protocol = "0.4.4"
 alsa = "0.9"
